@@ -1,4 +1,4 @@
-import { api } from "./env";
+import { api } from "./env.js";
 
 //
 //VARIABLE DECLARATIONS
@@ -14,6 +14,11 @@ const global = {
     api : {
         url : api.url,
         key : api.key
+    },
+    pages : {
+        current : '',
+        total_pages : '',
+        total_results : ''
     }
 }
 
@@ -66,6 +71,30 @@ const highlightActiveLink = (page) =>{
 }
 
 
+//get Now Playing Movies
+
+const getNowPlayingMovies = async () =>{
+
+    const results = await fetchAPIData('movie/now_playing');
+    console.log(results)
+    return results;
+
+}
+
+
+//get data from TMDB API
+const fetchAPIData = async (endpoint) =>{
+
+    const response = await fetch(`${global.api.url}${endpoint}?api_key=${global.api.key}&language=en-US`);
+    const results = await response.json();
+    
+    return results;
+
+}
+
+
+
+
 
 //
 //EVENT HANDLERS
@@ -84,4 +113,8 @@ const highlightActiveLink = (page) =>{
 
 router(global.currentPage);
 
-highlightActiveLink(global.currentPage)
+highlightActiveLink(global.currentPage);
+
+fetchAPIData('');
+
+getNowPlayingMovies();
