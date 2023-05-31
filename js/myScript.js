@@ -1,10 +1,20 @@
+import { api } from "./env";
+
 //
 //VARIABLE DECLARATIONS
 // 
 
 // [1] - correct
 const global = {
-    currentPage: window.location.pathname
+    currentPage: window.location.pathname,
+    search: {
+        type : '',
+        term : ''
+    },
+    api : {
+        url : api.url,
+        key : api.key
+    }
 }
 
 
