@@ -17,8 +17,8 @@ const global = {
     },
     pages : {
         current : '',
-        total_pages : '',
-        total_results : ''
+        totalPages : '',
+        totalResults : ''
     }
 }
 
@@ -39,7 +39,7 @@ const router = (page) =>{
             break;
         
         case "/search.html":
-            console.log("Search");
+            search();
             break;
         
         case "/shows.html":
@@ -56,6 +56,8 @@ const router = (page) =>{
     }
 
     highlightActiveLink(page);
+
+    displaySlider();
 
 }
 
@@ -323,6 +325,124 @@ const showSpinner = () =>{
 
 const hideSpinner = () =>{
     document.querySelector('.spinner').classList.remove('show');
+}
+
+
+
+
+// Search
+
+const search = async () =>{
+
+    const queryString = window.location.search;
+
+    const params = new URLSearchParams(queryString);
+
+    global.search.type = params.get('type');
+    global.search.term = params.get('search-term');
+
+    //search data from API
+
+    const {results, total_pages, total_results} = await searchAPIData();
+
+    global.pages.totalPages = total_pages;
+    global.pages.totalResults = total_results;
+
+    console.log(results);
+
+    displaySearchResults(results);
+
+}
+
+const displaySearchResults = (results) =>{
+    
+    results.forEach(result=>{
+    
+    const div = document.createElement('div');
+    div.classList.add('card');
+    div.innerHTML = `
+        <a href="${global.search.type}-details.html?id=${result.id}">
+            <img
+            src="https://image.tmdb.org/t/p/w500${result.poster_path}"
+            class="card-img-top"
+            alt="${result.title}"
+            />
+        </a>
+        <div class="card-body">
+            <h5 class="card-title">${global.search.type === "movie" ? result.title : result.name}</h5>
+            <p class="card-text">
+            <small class="text-muted">${global.search.type === "movie" ? "Release" : "Air Date"} : ${global.search.type === "movie" ? result.release_date : result.first_air_date}</small>
+            </p>
+        </div>
+     `;
+    
+     document.querySelector('#search-results').appendChild(div);
+    })
+    
+}
+
+
+const searchAPIData = async () =>{
+    const response = await fetch(`${global.api.url}search/${global.search.type}?query=${global.search.term}&api_key=${global.api.key}&language=en-US`);
+
+    return await response.json();
+}
+
+
+
+
+
+
+// Display Slider
+
+const displaySlider = async () =>{
+    const { results } = await fetchAPIData(`movie/now_playing`);
+
+    results.forEach(movie =>{
+        const div = document.createElement('div');
+        div.classList.add('swiper-slide');
+        div.innerHTML = `
+            <a href="movie-details.html?id=${movie.id}">
+                <img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" alt="${movie.title}"/>
+            </a>
+            <h4 class="swiper-rating">
+                <i class="fas fa-star text-secondary"></i> ${movie.vote_average}/10
+            </h4>
+            
+        `;
+
+        if(global.currentPage === '/' || global.currentPage === '/index.html'){
+
+            document.querySelector('.swiper-wrapper').appendChild(div);
+            initSwiper();
+        }
+
+
+    });
+
+}
+
+const initSwiper = () =>{
+    const swiper = new Swiper('.swiper',{
+        slidesPerView : 1,
+        spaceBetween: 30,
+        freeMode: true,
+        loop: true,
+        autoplay: {
+            delay: 4000,
+            disableOnOnteraction: false
+        },
+        breakpoints: {
+            500 : {
+                slidesPerView: 2
+        },
+        700 : {
+            slidesPerView: 3
+    },1200 : {
+        slidesPerView: 4
+    }
+}});
+
 }
 
 
