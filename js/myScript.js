@@ -4,21 +4,19 @@ import { api } from "./env.js";
 //VARIABLE DECLARATIONS
 // 
 
-// [1] - correct
+// set global object to pick values from anywhere
 const global = {
     currentPage: window.location.pathname,
     search: {
         type : '',
-        term : ''
+        term : '',
+        page : 1,
+        totalPages : 1,
+        totalResults : 0
     },
     api : {
         url : api.url,
         key : api.key
-    },
-    pages : {
-        current : '',
-        totalPages : '',
-        totalResults : ''
     }
 }
 
@@ -28,9 +26,9 @@ const global = {
 //FUNCTIONS
 //
 
-//[2] - correct
-//implented a router
-const router = (page) =>{
+//
+//implemented a router - loads function corresponding to page
+const functionLoader = (page) =>{
 
     switch (page){
         case "/":
@@ -61,7 +59,7 @@ const router = (page) =>{
 
 }
 
-//[3] - correct
+//
 //highlight active links
 const highlightActiveLink = (page) =>{
     const navLinks = document.querySelectorAll(".nav-link");
@@ -75,7 +73,7 @@ const highlightActiveLink = (page) =>{
 }
 
 
-//get Shows
+//displays popular TV Shows
 
 const displayTVShows = async () =>{
 
@@ -156,6 +154,7 @@ const displayPopularMovies = async () =>{
 
 }
 
+// sets backdrop for movie/show details
 const displayBackdropImage = (type, imagePath) =>{
 
     const overlayDiv = document.createElement('div');
@@ -330,31 +329,59 @@ const hideSpinner = () =>{
 
 
 
-// Search
+// Search movies or shows
 
 const search = async () =>{
 
     const queryString = window.location.search;
 
-    const params = new URLSearchParams(queryString);
+    const params = new URLSearchParams(queryString); //helps to manipulate the query strings
 
     global.search.type = params.get('type');
     global.search.term = params.get('search-term');
 
-    //search data from API
+    if(global.search.term !== '' && global.search.term !== null){
 
-    const {results, total_pages, total_results} = await searchAPIData();
+            showSpinner();
 
-    global.pages.totalPages = total_pages;
-    global.pages.totalResults = total_results;
+            //search data from API
+        
+            const {results, total_pages, total_results, page} = await searchAPIData();
+        
+            global.search.page = page;
+            global.search.totalPages = total_pages;
+            global.search.totalResults = total_results;
 
-    console.log(results);
+            hideSpinner();
 
-    displaySearchResults(results);
+            if(results.length === 0){
+                showAlert('No results found!');
+            }
+        
+            displaySearchResults(results);
+
+    }else{
+
+        showAlert('Enter a movie or show to begin search.');
+        
+
+    }
 
 }
 
+//displays search result on DOM
 const displaySearchResults = (results) =>{
+
+    document.querySelector('#search-results').innerHTML = '';
+    document.querySelector('#search-results-heading').innerHTML = '';
+    document.querySelector('#pagination').innerHTML = '';
+
+
+    document.querySelector('#search-results-heading').innerHTML = `
+        <h2>${results.length} of ${global.search.totalResults} results</h2>
+    `;
+
+
     
     results.forEach(result=>{
     
@@ -378,19 +405,83 @@ const displaySearchResults = (results) =>{
     
      document.querySelector('#search-results').appendChild(div);
     })
+
+
+    displayPagination();
     
 }
 
 
-const searchAPIData = async () =>{
-    const response = await fetch(`${global.api.url}search/${global.search.type}?query=${global.search.term}&api_key=${global.api.key}&language=en-US`);
+const displayPagination = () =>{
+    const div = document.createElement('div');
+    div.classList.add('pagination');
+    div.innerHTML = `
+        <button class="btn btn-primary" id="prev">Prev</button>
+        <button class="btn btn-primary" id="next">Next</button>
+        <div class="page-counter">Page ${global.search.page} of ${global.search.totalPages}</div>
+    `;
 
-    return await response.json();
+    document.querySelector('#pagination').appendChild(div);
+    
+    //disable previous button
+    if(global.search.page === 1){
+        document.querySelector('#prev').disabled = true;
+    }
+    
+    //disable next button
+    if(global.search.totalPages === global.search.page){
+        document.querySelector('#next').disabled = true;
+    }
+    
+    
+    //fetch next record from searchAPI
+    document.querySelector('#next').addEventListener('click',async ()=>{
+        global.search.page++;
+
+        const {results, total_pages} = await searchAPIData();
+
+        displaySearchResults(results);
+
+        global.search.totalPages = total_pages;
+
+    });
+
+
+    //fetch previous recordset from searchAPI
+    document.querySelector('#prev').addEventListener('click',async ()=>{
+        global.search.page--;
+
+        const {results, total_pages} = await searchAPIData();
+
+        displaySearchResults(results);
+
+        global.search.totalPages = total_pages;
+
+    });
+
+}
+
+// implement next page control
+
+
+const nextPage = () =>{
 }
 
 
+// implement previous page control
 
 
+
+const previousPage = () =>{
+    global.search.page--;
+}
+
+//searches the TMDB API with parameters
+const searchAPIData = async () =>{
+    const response = await fetch(`${global.api.url}search/${global.search.type}?query=${global.search.term}&page=${global.search.page}&api_key=${global.api.key}&language=en-US`);
+
+    return await response.json();
+}
 
 
 // Display Slider
@@ -446,6 +537,18 @@ const initSwiper = () =>{
 }
 
 
+
+const showAlert = (msg, className='error') =>{
+    const alertEl = document.createElement('div');
+    alertEl.classList.add('alert',className);
+    alertEl.appendChild(document.createTextNode(msg));
+    document.querySelector('#alert').appendChild(alertEl);
+
+    setTimeout(()=>alertEl.remove(), 3000);
+}
+
+
+
 //get data from TMDB API
 const fetchAPIData = async (endpoint) =>{
 
@@ -462,8 +565,6 @@ const fetchAPIData = async (endpoint) =>{
 
 
 
-
-
 //
 //EVENT HANDLERS
 //
@@ -472,11 +573,6 @@ const fetchAPIData = async (endpoint) =>{
 
 
 
-
-
-
-
-
 //FUNCTION CALLS ON LOAD
 
-router(global.currentPage);
+functionLoader(global.currentPage);
